@@ -21,7 +21,7 @@ Six onglets, chacun avec son sous-menu :
 | Onglet | Contenu |
 |---|---|
 | **Présentation** | Le mode d'emploi de la boîte à outils |
-| **Manche** | Toutes les notes (de 0 à 12) ; cycle des quartes sur une corde, avec le cercle affiché ; une note sur toutes les cordes |
+| **Manche** | Toutes les notes (de 0 à 12) ; les mains (un doigt par case, jeu aux doigts : pouce en appui, index et majeur alternés, butée) ; cycle des quartes sur une corde, avec le cercle affiché |
 | **Gammes** | Premières gammes (majeure, mineure naturelle, pentatoniques, gamme blues, avec les doigts), modes et gammes dérivés ; en position, sur une octave (fondamentale sur la corde de Mi ou de La) ou le long d'une corde ; partition en clé de Fa sous chaque gamme ; à jouer au métronome sous le schéma, en noires, croches, triolets ou doubles croches, avec des motifs (tierces, quartes… triades, gammes brisées) |
 | **Arpèges** | Triades et fondamentale-quinte-octave, Maj7, 7, m7, m7♭5, dim7 : sur une octave (corde de Mi ou de La) et en diagonale ; à jouer au métronome, cycle des quartes en option |
 | **Styles** | Rock, reggae, funk, jazz : des formules de basse classées par difficulté, écrites en intervalles. Chaque formule s'affiche sur le manche et sur la portée dans l'accord choisi, puis se joue au métronome : toujours le même accord, cycle des quartes, ou une grille du style. La batterie et les accords accompagnent ; la basse, c'est l'élève |
