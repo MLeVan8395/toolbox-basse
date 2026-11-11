@@ -259,7 +259,7 @@ label.chk input{width:18px;height:18px;accent-color:var(--accent)}
 </section>
 
 </main>
-<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Boîte à outils basse · <span id="appver">version 2</span><br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
+<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Boîte à outils basse · <span id="appver">version 3</span><br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
 <script src="contenu/formes.js"></script>
 <script src="contenu/lignes.js"></script>
 <script>
@@ -1129,6 +1129,18 @@ function placeRoot(pc,offs,prev,zone){let best=null;
     for(const d of offs){const f=r+d>=TUN[NS]&&r+d<=TUN[1]+12?fingerOf(r+d,fr,zone):null;c+=f?f.c:25;}
     if(!best||c<best.c)best={s,fr,r,c};}
   return best;}
+// Gamme de chaque type d'accord (demi-tons depuis la fondamentale) : une note d'approche doit en faire partie
+const ECH={'':[0,2,4,5,7,9,11],'6':[0,2,4,5,7,9,11],'Maj7':[0,2,4,5,7,9,11],'7':[0,2,4,5,7,9,10],'m':[0,2,3,5,7,8,10],'m7':[0,2,3,5,7,9,10],
+  'm6':[0,2,3,5,7,9,11],'m7♭5':[0,2,3,5,6,8,10],'dim7':[0,2,3,5,6,8,9,11],'5':[0,2,5,7,9,10]};
+/* Note d'approche vers tg (la fondamentale de l'accord suivant), jouée sur l'accord C :
+   par un demi-ton si cette note est dans la gamme de C, sinon par un ton (sur C7 qui revient à C7 : Si♭, jamais Si).
+   En jazz (chrom), le demi-ton chromatique est permis quand l'accord change ; jamais sur un accord qui se répète.
+   Jamais deux fois la même note de suite : on approche alors par l'autre côté. */
+function approche(C,C2,tg,below,last,chrom){
+  const sc=ECH[C.suf]||ECH[''],inSc=m=>sc.includes(mod(m-C.pc,12)),chg=C2.pc!==C.pc,cands=[];
+  for(const b of [below,!below])for(const st of [1,2])cands.push({below:b,m:fitM(tg+(b?-st:st)),st});
+  const ok=c=>(inSc(c.m)||(chrom&&chg&&c.st===1))&&!(last&&last.m===c.m)&&mod(c.m-tg,12)!==0;
+  return cands.find(ok)||cands.find(c=>inSc(c.m))||cands[1];}
 /* Fabrique une ligne de basse, mesure après mesure. o = {bars:b=>[accords de la mesure b], pick:(accord,demi,mesure,précédente)=>formule, sig, zone} */
 function ligneGen(o){
   const sig=o.sig||0,K=keyBySig(sig),zone=o.zone||'bas',notes=[],plans=[];let pos=null,lastC=null,lastF=null;
@@ -1150,8 +1162,7 @@ function ligneGen(o){
           if(t.k==='r')notes.push({...base,rest:true,p:34,name:'silence',locs:[]});
           else{let m,L,a,lab,ghost=false;
             if(t.k==='x'){ghost=true;const q=last||{m:S.R.r,L:C.L,a:C.a};m=q.m;L=q.L;a=q.a;lab='×';}
-            else if(t.k==='a'||t.k==='A'){let below=t.k==='a';const tg=cible(nxt);if(last&&last.m===fitM(tg+(below?-1:1)))below=!below; // jamais deux fois la même note : on approche alors par l'autre côté
-              m=fitM(tg+(below?-1:1));[L,a]=spellApp(m,nxt.C,below);lab=below?'↗':'↘';}
+            else if(t.k==='a'||t.k==='A'){const tg=cible(nxt),ap=approche(C,nxt.C,tg,t.k==='a',last,o.chrom);m=ap.m;[L,a]=spellApp(m,nxt.C,ap.below);lab=ap.below?'↗':'↘';}
             else{const r=tokSemi(t,C);m=fitM(S.R.r+r[0]);lab=r[1];[L,a]=spellI(C,m,lab);}
             const f=fingerOf(m,S.R.fr,zone)||{s:NS,fr:0},oc=Math.round((m+12-a-NAT[L])/12)-1,p=oc*7+L+PSH;
             const pv=notes[notes.length-1],tied=!!(pv&&!pv.rest&&pv.tieNext&&pv.m===m),cur=st[p]!==undefined?st[p]:sigAltL(sig,L),showAcc=!tied&&!ghost&&a!==cur;if(!ghost)st[p]=a;
@@ -1199,7 +1210,7 @@ GAMES.push({id:'style',titre:'Formules de basse',
     // la formule choisie ; si elle ne va pas sur un accord de la grille (ou s'il y a deux accords dans la mesure), la plus proche qui convient
     const FB={n:'1.48',niv:1},FBD={n:'1.24',niv:1,demi:true};
     const pick=(C,demi)=>{if(!demi&&formuleOk(F,C))return F;const c=S.formules.filter(x=>!!x.demi===demi&&x.niv<=F.niv&&formuleOk(x,C));return c.length?c.reduce((a,b)=>b.niv>a.niv?b:a):(demi?FBD:FB);};
-    const get=ligneGen({bars,pick,sig,zone}),kt=sig?keyBySig(sig):['',0,0,0],swing=!!S.swing||SWING,accL=val('gAccL')||'full',accSt=accL==='none'?'none':S.acc;
+    const get=ligneGen({bars,pick,sig,zone,chrom:S.id==='jazz'}),kt=sig?keyBySig(sig):['',0,0,0],swing=!!S.swing||SWING,accL=val('gAccL')||'full',accSt=accL==='none'?'none':S.acc;
     BASSKIND=S.son||'eb';
     // le schéma de la formule sur l'accord en cours : toutes ses notes, la note jouée entourée
     const board=(n,cur)=>{const seen={},ns=[];n.seg.ns.forEach(x=>{const k=x.s+':'+x.fr;if(x.ghost||seen[k])return;seen[k]=1;ns.push(x);});
