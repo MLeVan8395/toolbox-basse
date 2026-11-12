@@ -297,7 +297,7 @@ label.chk input{width:18px;height:18px;accent-color:var(--accent)}
 </section>
 
 </main>
-<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Boîte à outils basse · <span id="appver">version 4</span><br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
+<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Boîte à outils basse · <span id="appver">version 5</span><br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
 <script src="contenu/formes.js"></script>
 <script src="contenu/lignes.js"></script>
 <script>
@@ -625,7 +625,7 @@ function seqStaff(items,o){
     if(li===nl-1)out.push(`<line x1="${W-10}" y1="${top}" x2="${W-10}" y2="${top+40}" stroke="currentColor"/><line x1="${W-6}" y1="${top}" x2="${W-6}" y2="${top+40}" stroke="currentColor" stroke-width="3"/>`);
     let x=left0+14;
     ln.forEach((n,j)=>{const i=li*o.perLine+j;if(o.group&&j>0&&i%o.group===0)x+=GAP;
-      const y=yP(n.p),L=mod(n.p,7),cur=i===o.cur,col=cur?'var(--accent)':n.root?'var(--root)':'currentColor';
+      const y=yP(n.p),L=mod(n.p-PSH,7),cur=i===o.cur,col=cur?'var(--accent)':n.root?'var(--root)':'currentColor';
       for(let q=BOT-2;q>=n.p;q-=2)out.push(`<line x1="${x-11}" y1="${yP(q)}" x2="${x+11}" y2="${yP(q)}" stroke="currentColor"/>`);
       for(let q=BOT+10;q<=n.p;q+=2)out.push(`<line x1="${x-11}" y1="${yP(q)}" x2="${x+11}" y2="${yP(q)}" stroke="currentColor"/>`);
       if(cur)out.push(`<rect x="${x-13}" y="${top-above+2}" width="26" height="${LH-6}" rx="6" fill="var(--accent-soft)"/>`);
@@ -641,7 +641,7 @@ function seqStaff(items,o){
 // wr : notes écrites (spellSeq) ; sub : notes par temps ; padSlots : places vides en fin de tour ; kt : [nom, hauteur, lettre, armure] ; b0 : première mesure
 function rhythmItems(wr,sub,padSlots,kt,sig,b0,i0){
   const items=[],map=[],d=1/sub,d12=12/sub,bl=4*sub;
-  wr.forEach((n,q)=>{const L=mod(n.p,7);map.push(i0+items.length);
+  wr.forEach((n,q)=>{const L=mod(n.p-PSH,7);map.push(i0+items.length);
     items.push({i:i0+items.length,p:n.p,a:n.a,name:n.name,lab:n.lab,showAcc:sig?n.a!==sigAltOf(sig,L):n.a!==0,d,d12,bar:b0+Math.floor(q/bl),beat:(q%bl)/sub,key:kt});});
   let q=wr.length;const end=wr.length+padSlots;
   while(q<end){const bar=b0+Math.floor(q/bl),bs=q%bl,beat=bs/sub,rest=(dd,slots)=>{for(let k=0;k<slots;k++)map.push(i0+items.length);items.push({i:i0+items.length,rest:true,p:34,d:dd,d12:Math.round(dd*12),bar,beat,name:'silence',key:kt});q+=slots;};
@@ -972,7 +972,7 @@ const GAMES=[
     let pos=null;const tours=[];
     const tour=n=>{while(tours.length<=n){const key=cyc?KEYQ[(startQ+tours.length)%12]:KEYS[k0];
         const pl=place(f,key,pos===null?(f.diag?{floor:0}:{}):{near:pos,floor:f.diag?0:1});pos=pl.reduce((a,b)=>a+b.fr,0)/pl.length;
-        const M=motifSeq(ascOf(pl),f0.arp?'lin':val('gMot')),seq=M.seq,SK=staffKeyOf(f0,key),bar=(cyc&&SK.sig?16:4)*sub,pad=mod(-seq.length,bar); // cycle avec armure : un tour = des lignes entières
+        const M=motifSeq(ascOf(pl),f0.arp?'lin':val('gMot')),seq=M.seq,SK=staffKeyOf(f0,key),bar=4*sub,pad=mod(-seq.length,bar); // un tour se termine à la fin de sa mesure : pas de mesures de silence en plus
         const prev=tours[tours.length-1],b0=prev?prev.b0+(prev.seq.length+prev.pad)/(4*sub):0,i0=prev?prev.i0+prev.R.items.length:0;
         const R=rhythmItems(spellSeq(seq,SK.K),sub,pad,keyTupleOf(SK.K,SK.sig,f0.n==='Gamme mineure naturelle'),SK.sig,b0,i0);
         tours.push({key,pl,seq,pad,ext:M.ext,b0,i0,R});}return tours[n];};
@@ -1032,10 +1032,14 @@ function drawStaff(get,curIdx,key,chrom,swing,showPick,O){
   const LK=[lineKey(0),lineKey(1)],prevKey=b0>0?(()=>{let j=firstIdx-1;return j>=0?get(j).key||key:null;})():null;
   const nsig=Math.max(...LK.map(k=>Math.abs(k[3]))),left=62+nsig*10+(b0===0?22:0);
   // espacement : chaque note prend une place selon sa durée, plus la place de son altération
-  const XS={};{let j=firstIdx;const byBar={};while(true){const n=get(j);if(n.bar>b0+NB-1)break;(byBar[n.bar]=byBar[n.bar]||[]).push([j,n]);j++;}
-    for(const k in byBar)BW=Math.max(BW,14+byBar[k].reduce((a,[j,n])=>a+(n.showAcc?24:0)+14+Math.sqrt(n.d)*22,0));
-    for(const k in byBar){const L=byBar[k],w=L.map(([j,n])=>(n.showAcc?24:0)+14+Math.sqrt(n.d)*22),tot=w.reduce((a,b)=>a+b,0),sc=(BW-14)/tot;
-      let acc=6;L.forEach(([j,n],q)=>{acc+=(n.showAcc?24:0)*sc;XS[j]=acc+8;acc+=(w[q]-(n.showAcc?24:0))*sc;});}}
+  const XS={},KCH={};{let j=firstIdx;const byBar={};while(true){const n=get(j);if(n.bar>b0+NB-1)break;(byBar[n.bar]=byBar[n.bar]||[]).push([j,n]);j++;}
+    // changement d'armure au début d'une mesure qui n'ouvre pas la ligne : bécarres d'annulation puis nouvelle armure
+    for(const k in byBar){const bi=k-b0,K=byBar[k][0][1].key||key,pv=byBar[k-1]?byBar[k-1][byBar[k-1].length-1][1]:null,PK=pv?(pv.key||key):null;
+      if(bi%4&&PK&&PK[0]!==K[0]){const a=PK[3],b=K[3],nat=[];if(a&&(Math.sign(a)!==Math.sign(b)||Math.abs(b)<Math.abs(a)))for(let q=(Math.sign(a)===Math.sign(b)?Math.abs(b):0);q<Math.abs(a);q++)nat.push(q);
+        KCH[k]={a,b,nat,w:(nat.length+Math.abs(b))*10+18};}}
+    for(const k in byBar)BW=Math.max(BW,14+(KCH[k]?KCH[k].w:0)+byBar[k].reduce((a,[j,n])=>a+(n.showAcc?24:0)+14+Math.sqrt(n.d)*22,0));
+    for(const k in byBar){const L=byBar[k],w=L.map(([j,n])=>(n.showAcc?24:0)+14+Math.sqrt(n.d)*22),tot=w.reduce((a,b)=>a+b,0),kw=KCH[k]?KCH[k].w:0,sc=(BW-14-kw)/tot;
+      let acc=6+kw;L.forEach(([j,n],q)=>{acc+=(n.showAcc?24:0)*sc;XS[j]=acc+8;acc+=(w[q]-(n.showAcc?24:0))*sc;});}}
   const W=left+(O.lastBar!==undefined?Math.max(1,Math.min(4,O.lastBar-b0+1)):4)*BW+12,LH=118+(cur.slash||cur.ch?18:0)+(O.labels?44:0),T0=(cur.slash||cur.ch?58:34)+(O.labels?44:0),o=[],LABS=[];
 
   for(let line=0;line<NL;line++){
@@ -1044,11 +1048,15 @@ function drawStaff(get,curIdx,key,chrom,swing,showPick,O){
     for(let l=0;l<5;l++)o.push(`<line x1="8" y1="${top+l*SPc}" x2="${xe}" y2="${top+l*SPc}" stroke="currentColor" stroke-width="1"/>`);
     if(fin)o.push(`<line x1="${xe-5}" y1="${top}" x2="${xe-5}" y2="${top+40}" stroke="currentColor" stroke-width="1"/><line x1="${xe-1}" y1="${top}" x2="${xe-1}" y2="${top+40}" stroke="currentColor" stroke-width="3"/>`);
     o.push(glyph('bass',9,top+39.4,52));
-    {const sig=LK[line][3],pk=line===0?prevKey:LK[0];for(let k=0;k<Math.abs(sig);k++)o.push(glyph(sig>0?'sharp':'flat',48+k*10,yP(sig>0?SIG_S[k]:SIG_F[k])+(sig>0?5:3),15));
+    {const sig=LK[line][3],pk=line===0?prevKey:(()=>{let j=firstIdx,k=null;while(true){const n=get(j);if(n.bar>=b0+4*line)break;k=n.key||key;j++;}return k;})(); /* armure à la fin de la ligne précédente */for(let k=0;k<Math.abs(sig);k++)o.push(glyph(sig>0?'sharp':'flat',48+k*10,yP(sig>0?SIG_S[k]:SIG_F[k])+(sig>0?5:3),15));
      if(pk&&pk[0]!==LK[line][0])o.push(`<text x="10" y="${top-12}" font-size="12" font-weight="700" font-family="var(--body)" fill="var(--accent)">Nouvelle armure : tonalité de ${esc(LK[line][0])}</text>`);}
     if(swing&&line===0)o.push(`<text x="4" y="${top-24}" font-size="13" font-weight="700" font-style="italic" font-family="Georgia,serif" fill="currentColor">Swing (croches ternaires)</text>`);
     if(b0===0&&line===0)o.push(`<text x="${left-16}" y="${top+19}" font-size="21" font-weight="700" font-family="Georgia,serif" text-anchor="middle" fill="currentColor">4</text><text x="${left-16}" y="${top+39}" font-size="21" font-weight="700" font-family="Georgia,serif" text-anchor="middle" fill="currentColor">4</text>`);
     for(let k=0;k<=nbL-(fin?1:0);k++){const x=left+k*BW-(k===0?6:0);o.push(`<line x1="${k===0?left-4:x}" y1="${top}" x2="${k===0?left-4:x}" y2="${top+40}" stroke="currentColor" stroke-width="${k===0?0:1.2}"/>`);}
+    for(let k=1;k<nbL;k++){const C=KCH[b0+4*line+k];if(!C)continue;const x=left+k*BW;
+      o.push(`<line x1="${x-4}" y1="${top}" x2="${x-4}" y2="${top+40}" stroke="currentColor" stroke-width="1.2"/>`);
+      let xx=x+10;C.nat.forEach(q=>{o.push(glyph('natural',xx-2,yP(C.a>0?SIG_S[q]:SIG_F[q])+5,15));xx+=10;});
+      for(let q=0;q<Math.abs(C.b);q++){o.push(glyph(C.b>0?'sharp':'flat',xx,yP(C.b>0?SIG_S[q]:SIG_F[q])+(C.b>0?5:3),15));xx+=10;}}
   }
   // notes
   let i=firstIdx;const groups=[],ARTS=[],XSP={},PICKS=[];
